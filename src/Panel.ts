@@ -14,12 +14,16 @@ export class Panel {
     private readonly text: IText;
     private readonly graph: IGraph;
 
-    constructor(private readonly name: string, private readonly foreground: string, private readonly background: string) {
+    constructor(
+        private readonly name: string,
+        private readonly foreground: string,
+        private readonly background: string
+    ) {
         this.min = Infinity;
         this.max = 0;
         this.pixelRatio = Math.round(devicePixelRatio || 1);
-        this.width = 80 * this.pixelRatio;
-        this.height = 48 * this.pixelRatio;
+        this.width = 100 * this.pixelRatio;
+        this.height = 60 * this.pixelRatio;
         this.text = {
             position: {
                 x: 3 * this.pixelRatio,
@@ -29,21 +33,23 @@ export class Panel {
         this.graph = {
             position: {
                 x: 3 * this.pixelRatio,
-                y: 15 * this.pixelRatio,
+                y: 18 * this.pixelRatio,
             },
             size: {
-                width: 74 * this.pixelRatio,
-                height: 30 * this.pixelRatio,
+                width: 94 * this.pixelRatio,
+                height: 40 * this.pixelRatio,
             },
         };
         this.canvas = document.createElement("canvas");
         this.canvas.width = this.width;
         this.canvas.height = this.height;
-        this.canvas.style.cssText = "width:80px;height:48px";
+        this.canvas.style.cssText = "width: 100px; height:60px";
         this.context = this.canvas.getContext("2d");
 
         if (this.context) {
-            this.context.font = `bold ${9 * this.pixelRatio}px Helvetica,Arial,sans-serif`;
+            const fontSize = 12 * this.pixelRatio;
+
+            this.context.font = `400 ${fontSize}px "Avenir Next", Helvetica, "Helvetica Neue", Arial, sans-serif`;
             this.context.textBaseline = "top";
             this.context.fillStyle = this.background;
             this.context.fillRect(0, 0, this.width, this.height);
