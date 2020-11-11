@@ -12,10 +12,10 @@ This class provides a simple info box that will help you monitor your code perfo
 
 ### Screenshots ###
 
-![fps.png](https://raw.githubusercontent.com/matteobruni/stats.ts/master/files/fps.png)
-![ms.png](https://raw.githubusercontent.com/matteobruni/stats.ts/master/files/ms.png)
-![mb.png](https://raw.githubusercontent.com/matteobruni/stats.ts/master/files/mb.png)
-![custom.png](https://raw.githubusercontent.com/matteobruni/stats.ts/master/files/custom.png)
+![fps.png](https://raw.githubusercontent.com/matteobruni/stats.ts/main/files/fps.png)
+![ms.png](https://raw.githubusercontent.com/matteobruni/stats.ts/main/files/ms.png)
+![mb.png](https://raw.githubusercontent.com/matteobruni/stats.ts/main/files/mb.png)
+![custom.png](https://raw.githubusercontent.com/matteobruni/stats.ts/main/files/custom.png)
 
 ### Installation ###
 ```bash
