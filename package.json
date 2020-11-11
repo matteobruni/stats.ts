@@ -1,0 +1,53 @@
+{
+  "name": "stats.ts",
+  "version": "1.0.0",
+  "description": "JavaScript Performance Monitor",
+  "browser": "dist/cjs/index.js",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "jsdelivr": "dist/stats.min.js",
+  "unpkg": "dist/stats.min.js",
+  "repository": "matteobruni/stats.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "prettify:src": "prettier --write ./src/",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
+    "clear:dist": "rimraf -f ./dist",
+    "build": "yarn clear:dist && yarn prettify:src && yarn build:ts:check && yarn lint && yarn build:ts && webpack --mode production",
+    "build:ts:check": "tsc --noEmit",
+    "build:ts": "yarn build:ts:browser && yarn build:ts:cjs",
+    "build:ts:browser": "tsc",
+    "build:ts:cjs": "tsc -b tsconfig.cjs.json",
+    "prepack": "yarn build"
+  },
+  "keywords": [
+    "performance",
+    "fps",
+    "stats"
+  ],
+  "author": "matteobruni",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/matteobruni/stats.ts/issues"
+  },
+  "homepage": "https://github.com/matteobruni/stats.ts",
+  "devDependencies": {
+    "@babel/core": "^7.12.3",
+    "@typescript-eslint/eslint-plugin": "^4.7.0",
+    "@typescript-eslint/parser": "^4.7.0",
+    "babel-loader": "^8.2.1",
+    "eslint": "^7.13.0",
+    "eslint-config-prettier": "^6.15.0",
+    "prettier": "^2.1.2",
+    "rimraf": "^3.0.2",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.5",
+    "webpack": "^5.4.0",
+    "webpack-bundle-analyzer": "^4.1.0",
+    "webpack-cli": "^4.2.0"
+  }
+}
