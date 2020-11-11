@@ -1,0 +1,2 @@
+# stats.ts
+Canvas Stats
