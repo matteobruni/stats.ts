@@ -27,7 +27,14 @@ export class Stats {
         this.mode = 0;
         this.dom = document.createElement("div");
 
-        this.dom.style.cssText = "position:fixed;top:0;left:0;cursor:pointer;opacity:0.9;z-index:10000";
+        this.dom.style.position = "fixed";
+        this.dom.style.top = "5px";
+        this.dom.style.left = "5px";
+        this.dom.style.cursor = "pointer";
+        this.dom.style.opacity = "0.9";
+        this.dom.style.zIndex = "10000";
+        this.dom.style.borderRadius = "5px";
+        this.dom.style.boxShadow = "-4px -4px 10px 0 #000000B3";
         this.dom.addEventListener(
             "click",
             (event) => {
@@ -40,11 +47,11 @@ export class Stats {
         this.beginTime = (performance || Date).now();
         this.previousTime = this.beginTime;
         this.frames = 0;
-        this.fpsPanel = this.addPanel("FPS", "#0ff", "#002");
-        this.millisecondsPanel = this.addPanel("MS", "#0f0", "#020");
+        this.fpsPanel = this.addPanel("FPS", "#4080f0", "#fff");
+        this.millisecondsPanel = this.addPanel("MS", "#33A033", "#fff");
 
         if (performance && performance.memory) {
-            this.memoryPanel = this.addPanel("MB", "#f08", "#201");
+            this.memoryPanel = this.addPanel("MB", "#f08", "#fff");
         }
 
         this.showPanel(0);
@@ -79,10 +86,10 @@ export class Stats {
 
         const time = (performance || Date).now();
 
-        this.millisecondsPanel.update(time - this.beginTime, 200);
+        this.millisecondsPanel.update(time - this.beginTime, Math.max(this.millisecondsPanel.max, 200));
 
-        if (time >= this.previousTime + 1000) {
-            this.fpsPanel.update((this.frames * 1000) / (time - this.previousTime), 100);
+        if (time >= this.previousTime + 100) {
+            this.fpsPanel.update((this.frames * 1000) / (time - this.previousTime), Math.max(60, this.fpsPanel.max));
             this.previousTime = time;
             this.frames = 0;
 
@@ -90,7 +97,12 @@ export class Stats {
                 const memory = performance.memory;
 
                 if (memory) {
-                    this.memoryPanel.update(memory.usedJSHeapSize / 1048576, memory.jsHeapSizeLimit / 1048576);
+                    const memoryFactor = 1048576;
+
+                    this.memoryPanel.update(
+                        memory.usedJSHeapSize / memoryFactor,
+                        Math.max(this.memoryPanel.max, memory.jsHeapSizeLimit / memoryFactor)
+                    );
                 }
             }
         }
