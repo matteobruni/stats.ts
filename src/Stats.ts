@@ -1,3 +1,4 @@
+import { IUpdateArgs } from "./Interfaces/IUpdateArgs";
 import { Panel } from "./Panel";
 
 interface MemoryPerformance {
@@ -15,13 +16,10 @@ export class Stats {
     public dom: HTMLElement;
 
     private beginTime;
-    private previousTime;
-    private frames;
     private mode;
+    private frames;
 
-    private readonly fpsPanel;
-    private readonly millisecondsPanel;
-    private readonly memoryPanel;
+    private readonly panels: Panel[];
 
     constructor() {
         this.mode = 0;
@@ -35,30 +33,73 @@ export class Stats {
         this.dom.style.zIndex = "10000";
         this.dom.style.borderRadius = "5px";
         this.dom.style.boxShadow = "-4px -4px 10px 0 #000000B3";
+
         this.dom.addEventListener(
             "click",
             (event) => {
                 event.preventDefault();
+
                 this.showPanel(++this.mode % this.dom.children.length);
             },
             false
         );
 
         this.beginTime = (performance || Date).now();
-        this.previousTime = this.beginTime;
         this.frames = 0;
-        this.fpsPanel = this.addPanel("FPS", "#4080f0", "#fff");
-        this.millisecondsPanel = this.addPanel("MS", "#33A033", "#fff");
+
+        this.panels = [];
+
+        this.panels.push(
+            this.addPanel("FPS", "#4080f0", "#ffffff", 100, (time, delta) => {
+                const res = {
+                    value: (this.frames * 1000) / delta,
+                    maxValue: 100,
+                };
+
+                this.frames = 0;
+
+                return res;
+            })
+        );
+
+        this.panels.push(
+            this.addPanel("MS", "#33A033", "#ffffff", 0, (time) => {
+                return {
+                    value: time - this.beginTime,
+                    maxValue: 200,
+                };
+            })
+        );
 
         if (performance && performance.memory) {
-            this.memoryPanel = this.addPanel("MB", "#f08", "#fff");
+            this.panels.push(
+                this.addPanel("MB", "#ff0088", "#ffffff", 100, () => {
+                    if (!performance || !performance.memory) {
+                        return;
+                    }
+
+                    const memory = performance.memory;
+                    const memoryFactor = 1048576;
+
+                    return {
+                        value: memory.usedJSHeapSize / memoryFactor,
+                        maxValue: memory.jsHeapSizeLimit / memoryFactor,
+                    };
+                })
+            );
         }
 
         this.showPanel(0);
     }
 
-    public addPanel(name: string, foreground: string, background: string): Panel {
-        const panel = new Panel(name, foreground, background);
+    public addPanel(
+        name: string,
+        foreground: string,
+        background: string,
+        msRefresh: number,
+        refreshCallback: (time: number, delta: number) => IUpdateArgs | undefined
+    ): Panel {
+        const panel = new Panel(name, foreground, background, msRefresh, refreshCallback);
 
         this.addPanelObject(panel);
 
@@ -82,29 +123,12 @@ export class Stats {
     }
 
     public end(): number {
-        this.frames++;
-
         const time = (performance || Date).now();
 
-        this.millisecondsPanel.update(time - this.beginTime, Math.max(this.millisecondsPanel.max, 200));
+        this.frames++;
 
-        if (time >= this.previousTime + 100) {
-            this.fpsPanel.update((this.frames * 1000) / (time - this.previousTime), Math.max(60, this.fpsPanel.max));
-            this.previousTime = time;
-            this.frames = 0;
-
-            if (this.memoryPanel) {
-                const memory = performance.memory;
-
-                if (memory) {
-                    const memoryFactor = 1048576;
-
-                    this.memoryPanel.update(
-                        memory.usedJSHeapSize / memoryFactor,
-                        Math.max(this.memoryPanel.max, memory.jsHeapSizeLimit / memoryFactor)
-                    );
-                }
-            }
+        for (const panel of this.panels) {
+            panel.update(time);
         }
 
         return time;
@@ -115,6 +139,7 @@ export class Stats {
     }
 
     private addPanelObject(panel: Panel): void {
+        this.panels.push(panel);
         this.dom.appendChild(panel.dom);
     }
 }

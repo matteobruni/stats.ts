@@ -1,4 +1,5 @@
 import type { IGraph, IText } from "./Interfaces";
+import { IUpdateArgs } from "./Interfaces/IUpdateArgs";
 
 export class Panel {
     public readonly dom;
@@ -15,6 +16,7 @@ export class Panel {
 
     private _max;
     private _min;
+    private lastTime;
 
     private readonly canvas: HTMLCanvasElement;
     private readonly context;
@@ -27,11 +29,14 @@ export class Panel {
     constructor(
         private readonly name: string,
         private readonly foreground: string,
-        private readonly background: string
+        private readonly background: string,
+        private readonly msRefresh: number,
+        private readonly refreshCallback: (time: number, delta: number) => IUpdateArgs | undefined
     ) {
         this.data = [];
         this._min = Infinity;
         this._max = 0;
+        this.lastTime = 0;
         this.pixelRatio = Math.round(devicePixelRatio || 1);
         this.width = 100 * this.pixelRatio;
         this.height = 60 * this.pixelRatio;
@@ -82,10 +87,29 @@ export class Panel {
         this.context.fillText(this.name, this.text.position.x, this.text.position.y);
     }
 
-    public update(value: number, maxValue: number): void {
+    public update(time: number): void {
+        const delta = time - this.lastTime;
+
+        if (delta < this.msRefresh) {
+            return;
+        }
+
+        const args = this.refreshCallback(time, delta);
+
+        if (!args) {
+            return;
+        }
+
+        this.lastTime = time;
+
+        const { value, maxValue } = args;
+
         this._min = Math.min(this._min, value);
         this._max = Math.max(this._max, value);
+
         this.data.push(value);
+
+        const realMax = Math.max(this._max, maxValue);
 
         if (this.data.length > this.graph.size.width) {
             this.data.splice(0, this.data.length - this.graph.size.width);
@@ -112,16 +136,18 @@ export class Panel {
         this.context.beginPath();
         this.context.moveTo(
             this.data.length + this.graph.position.x,
-            (1 - this.data[this.data.length - 1] / maxValue) * this.graph.size.height + this.graph.position.y
+            (1 - this.data[this.data.length - 1] / realMax) * this.graph.size.height + this.graph.position.y
         );
+
         for (let i = this.data.length - 1; i > 0; i--) {
             const cpx = i - 1 / 2 + this.graph.position.x;
-            const cpy = (v: number) => (1 - v / maxValue) * this.graph.size.height + this.graph.position.y;
+            const cpy = (v: number) => (1 - v / realMax) * this.graph.size.height + this.graph.position.y;
             const cp1y = cpy(this.data[i]);
             const cp2y = cpy(this.data[i - 1]);
 
             this.context.bezierCurveTo(cpx, cp1y, cpx, cp2y, i - 1 + this.graph.position.x, cp2y);
         }
+
         this.context.strokeStyle = this.foreground;
         this.context.stroke();
     }
