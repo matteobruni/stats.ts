@@ -28,8 +28,8 @@ export class Panel {
 
     constructor(
         private readonly name: string,
-        private readonly foreground: string,
-        private readonly background: string,
+        public foreground: string,
+        public background: string,
         private readonly msRefresh: number,
         private readonly refreshCallback: (time: number, delta: number) => IUpdateArgs | undefined
     ) {

@@ -15,6 +15,7 @@ declare global {
 export class Stats {
     public dom: HTMLElement;
 
+    private background;
     private beginTime;
     private mode;
     private frames;
@@ -24,15 +25,9 @@ export class Stats {
     constructor() {
         this.mode = 0;
         this.dom = document.createElement("div");
-
-        this.dom.style.position = "fixed";
-        this.dom.style.top = "5px";
-        this.dom.style.left = "5px";
-        this.dom.style.cursor = "pointer";
-        this.dom.style.opacity = "0.9";
-        this.dom.style.zIndex = "10000";
-        this.dom.style.borderRadius = "5px";
-        this.dom.style.boxShadow = "-4px -4px 10px 0 #000000B3";
+        this.panels = [];
+        this.background = "#ffffff";
+        this.initStyle();
 
         this.dom.addEventListener(
             "click",
@@ -47,10 +42,8 @@ export class Stats {
         this.beginTime = (performance || Date).now();
         this.frames = 0;
 
-        this.panels = [];
-
         this.panels.push(
-            this.addPanel("FPS", "#4080f0", "#ffffff", 100, (time, delta) => {
+            this.addPanel("FPS", "#4080f0", 100, (time, delta) => {
                 const res = {
                     value: (this.frames * 1000) / delta,
                     maxValue: 100,
@@ -63,7 +56,7 @@ export class Stats {
         );
 
         this.panels.push(
-            this.addPanel("MS", "#33A033", "#ffffff", 0, (time) => {
+            this.addPanel("MS", "#33A033", 0, (time) => {
                 return {
                     value: time - this.beginTime,
                     maxValue: 200,
@@ -73,7 +66,7 @@ export class Stats {
 
         if (performance && performance.memory) {
             this.panels.push(
-                this.addPanel("MB", "#ff0088", "#ffffff", 100, () => {
+                this.addPanel("MB", "#ff0088", 100, () => {
                     if (!performance || !performance.memory) {
                         return;
                     }
@@ -95,11 +88,10 @@ export class Stats {
     public addPanel(
         name: string,
         foreground: string,
-        background: string,
         msRefresh: number,
         refreshCallback: (time: number, delta: number) => IUpdateArgs | undefined
     ): Panel {
-        const panel = new Panel(name, foreground, background, msRefresh, refreshCallback);
+        const panel = new Panel(name, foreground, this.background, msRefresh, refreshCallback);
 
         this.addPanelObject(panel);
 
@@ -141,5 +133,46 @@ export class Stats {
     private addPanelObject(panel: Panel): void {
         this.panels.push(panel);
         this.dom.appendChild(panel.dom);
+    }
+
+    private initStyle(): void {
+        const darkMode = typeof matchMedia !== "undefined" ? matchMedia("(prefers-color-scheme: dark)") : undefined;
+
+        const listener = () => {
+            this.updateStyle();
+        };
+
+        if (darkMode?.addEventListener) {
+            darkMode?.addEventListener("change", listener);
+        } else if (darkMode?.addListener) {
+            darkMode?.addListener(listener);
+        }
+
+        this.updateStyle();
+    }
+
+    private updateStyle(): void {
+        const darkMode = typeof matchMedia !== "undefined" ? matchMedia("(prefers-color-scheme: dark)") : undefined;
+        const darkModeMatch = darkMode?.matches ?? false;
+
+        this.dom.style.position = "fixed";
+        this.dom.style.top = "5px";
+        this.dom.style.left = "5px";
+        this.dom.style.cursor = "pointer";
+        this.dom.style.opacity = "0.9";
+        this.dom.style.zIndex = "10000";
+        this.dom.style.borderRadius = "5px";
+
+        if (darkModeMatch) {
+            this.background = "#000000";
+            this.dom.style.boxShadow = "-4px -4px 10px 0 rgb(255, 255, 255, 0.7)";
+        } else {
+            this.background = "#ffffff";
+            this.dom.style.boxShadow = "-4px -4px 10px 0 rgb(0, 0, 0, 0.7)";
+        }
+
+        for (const panel of this.panels) {
+            panel.background = this.background;
+        }
     }
 }
