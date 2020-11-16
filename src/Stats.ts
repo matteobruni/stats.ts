@@ -1,4 +1,4 @@
-import { IUpdateArgs } from "./Interfaces/IUpdateArgs";
+import type { IUpdateArgs } from "./Interfaces/IUpdateArgs";
 import { Panel } from "./Panel";
 
 interface MemoryPerformance {

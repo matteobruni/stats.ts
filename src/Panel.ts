@@ -1,5 +1,5 @@
 import type { IGraph, IText } from "./Interfaces";
-import { IUpdateArgs } from "./Interfaces/IUpdateArgs";
+import type { IUpdateArgs } from "./Interfaces/IUpdateArgs";
 
 export class Panel {
     public readonly dom;
