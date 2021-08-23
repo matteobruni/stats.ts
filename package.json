@@ -44,7 +44,7 @@
     "eslint-config-prettier": "6.15.0",
     "prettier": "2.3.2",
     "rimraf": "3.0.2",
-    "ts-node": "9.1.1",
+    "ts-node": "10.2.1",
     "typescript": "4.3.5",
     "webpack": "5.51.1",
     "webpack-bundle-analyzer": "4.4.2",
