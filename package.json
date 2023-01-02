@@ -41,7 +41,7 @@
     "@typescript-eslint/parser": "5.47.1",
     "babel-loader": "9.1.0",
     "eslint": "8.31.0",
-    "eslint-config-prettier": "8.5.0",
+    "eslint-config-prettier": "8.6.0",
     "prettier": "2.8.1",
     "rimraf": "3.0.2",
     "ts-node": "10.9.1",
