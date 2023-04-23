@@ -42,7 +42,7 @@
     "babel-loader": "9.1.2",
     "eslint": "8.38.0",
     "eslint-config-prettier": "8.8.0",
-    "prettier": "2.8.4",
+    "prettier": "2.8.8",
     "rimraf": "5.0.0",
     "ts-node": "10.9.1",
     "typescript": "5.0.4",
