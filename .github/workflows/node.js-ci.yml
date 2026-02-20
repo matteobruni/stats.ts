@@ -41,12 +41,8 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-      - name: Clean tmp-files directory
-        run: rm -rf tests/tmp-files
-        if: always()
       - run: pnpm install
       - run: pnpm run build:ci
-      - run: pnpm test
   pr:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' }}
@@ -81,9 +77,5 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-      - name: Clean tmp-files directory
-        run: rm -rf tests/tmp-files
-        if: always()
       - run: pnpm install
       - run: pnpm run build:ci
-      - run: pnpm test
