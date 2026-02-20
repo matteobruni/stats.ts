@@ -1,6 +1,6 @@
 {
   "name": "stats.ts",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "JavaScript Performance Monitor",
   "type": "module",
   "browser": "dist/cjs/index.js",
