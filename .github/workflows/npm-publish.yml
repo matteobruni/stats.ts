@@ -55,7 +55,7 @@ jobs:
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           
-          BASE_CMD="npx pnpm publish --ignore-scripts"
+          BASE_CMD="npx pnpm publish --ignore-scripts --no-git-checks"
 
           if [[ "$TAG" == *"-alpha."* ]]; then
             $BASE_CMD --pre-dist-tag alpha
