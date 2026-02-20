@@ -1,0 +1,66 @@
+name: Publish Packages
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        name: Checkout Source
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        name: Setup Node.js
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - uses: pnpm/action-setup@v4.2.0
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: |
+          echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Build All Packages
+        run: pnpm run build:ci
+        env:
+          CI: true
+
+      - name: Publish to NPM (OIDC Auth)
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          
+          BASE_CMD="npx pnpm publish --ignore-scripts"
+
+          if [[ "$TAG" == *"-alpha."* ]]; then
+            $BASE_CMD --pre-dist-tag alpha
+          elif [[ "$TAG" == *"-beta."* ]]; then
+            $BASE_CMD --pre-dist-tag beta
+          else
+            $BASE_CMD
+          fi

@@ -38,11 +38,17 @@ export class Stats {
 
         this._beginTime = performance.now();
 
-        this.addPanel("FPS", "#4080f0", 100, (time, delta) => {
+        const fpsPanel = this.addPanel("FPS", "#4080f0", 100, (time, delta) => {
             const value = delta > 0 ? (this._frames * 1000) / delta : 0;
             this._frames = 0;
             return { value, maxValue: 100 };
         });
+
+        fpsPanel.thresholds = [
+            { value: 60, color: "#33A033" },
+            { value: 49, color: "#FFC700" },
+            { value: 29, color: "#FF0033" },
+        ];
 
         this.addPanel("MS", "#33A033", 0, (time) => {
             return { value: time - this._beginTime, maxValue: 200 };

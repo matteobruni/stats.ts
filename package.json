@@ -16,9 +16,12 @@
   ],
   "scripts": {
     "prettify:src": "prettier --write ./src/",
+    "prettify:src:ci": "prettier --check ./src/",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
+    "lint:ci": "eslint src --ext .js,.jsx,.ts,.tsx",
     "clear:dist": "rimraf ./dist",
     "build": "pnpm run clear:dist && pnpm run prettify:src && pnpm run build:ts:check && pnpm run lint && pnpm run build:ts && webpack --mode production",
+    "build:ci": "pnpm run clear:dist && pnpm run prettify:src:ci && pnpm run build:ts:check && pnpm run lint:ci && pnpm run build:ts && webpack --mode production",
     "build:ts:check": "tsc --noEmit",
     "build:ts": "pnpm run build:ts:browser && pnpm run build:ts:cjs",
     "build:ts:browser": "tsc",
