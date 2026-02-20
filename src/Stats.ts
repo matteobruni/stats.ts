@@ -1,5 +1,5 @@
-import type { IUpdateArgs } from "./Interfaces/IUpdateArgs";
-import { Panel } from "./Panel";
+import type { IUpdateArgs } from "./Interfaces/IUpdateArgs.js";
+import { Panel } from "./Panel.js";
 
 interface MemoryPerformance {
     usedJSHeapSize: number;
@@ -15,71 +15,49 @@ declare global {
 export class Stats {
     public dom: HTMLElement;
 
-    private background;
-    private beginTime;
-    private mode;
-    private frames;
-
-    private readonly panels: Panel[];
+    private _background = "rgba(255,255,255,0.15)";
+    private _beginTime = 0;
+    private readonly _darkModeQuery?: MediaQueryList;
+    private _frames = 0;
+    private _mode = 0;
+    private readonly _panels: Panel[] = [];
 
     constructor() {
-        this.mode = 0;
         this.dom = document.createElement("div");
-        this.panels = [];
-        this.background = "#ffffff";
-        this.initStyle();
 
-        this.dom.addEventListener(
-            "click",
-            (event) => {
-                event.preventDefault();
+        this._darkModeQuery =
+            typeof matchMedia !== "undefined" ? matchMedia("(prefers-color-scheme: dark)") : undefined;
 
-                this.showPanel(++this.mode % this.dom.children.length);
-            },
-            false
-        );
+        this._setupContainer();
+        this._initStyle();
 
-        this.beginTime = (performance || Date).now();
-        this.frames = 0;
+        this.dom.addEventListener("click", (event) => {
+            event.preventDefault();
+            this.showPanel((this._mode + 1) % this.dom.children.length);
+        });
 
-        this.panels.push(
-            this.addPanel("FPS", "#4080f0", 100, (time, delta) => {
-                const res = {
-                    value: (this.frames * 1000) / delta,
-                    maxValue: 100,
-                };
+        this._beginTime = performance.now();
 
-                this.frames = 0;
+        this.addPanel("FPS", "#4080f0", 100, (time, delta) => {
+            const value = delta > 0 ? (this._frames * 1000) / delta : 0;
+            this._frames = 0;
+            return { value, maxValue: 100 };
+        });
 
-                return res;
-            })
-        );
+        this.addPanel("MS", "#33A033", 0, (time) => {
+            return { value: time - this._beginTime, maxValue: 200 };
+        });
 
-        this.panels.push(
-            this.addPanel("MS", "#33A033", 0, (time) => {
+        if (performance.memory) {
+            const memory = performance.memory,
+                mb = 1048576;
+
+            this.addPanel("MB", "#ff0088", 100, () => {
                 return {
-                    value: time - this.beginTime,
-                    maxValue: 200,
+                    value: memory.usedJSHeapSize / mb,
+                    maxValue: memory.jsHeapSizeLimit / mb,
                 };
-            })
-        );
-
-        if (performance && performance.memory) {
-            this.panels.push(
-                this.addPanel("MB", "#ff0088", 100, () => {
-                    if (!performance || !performance.memory) {
-                        return;
-                    }
-
-                    const memory = performance.memory;
-                    const memoryFactor = 1048576;
-
-                    return {
-                        value: memory.usedJSHeapSize / memoryFactor,
-                        maxValue: memory.jsHeapSizeLimit / memoryFactor,
-                    };
-                })
-            );
+            });
         }
 
         this.showPanel(0);
@@ -89,37 +67,34 @@ export class Stats {
         name: string,
         foreground: string,
         msRefresh: number,
-        refreshCallback: (time: number, delta: number) => IUpdateArgs | undefined
+        refreshCallback: (time: number, delta: number) => IUpdateArgs | undefined,
     ): Panel {
-        const panel = new Panel(name, foreground, this.background, msRefresh, refreshCallback);
+        const panel = new Panel(name, foreground, this._background, msRefresh, refreshCallback);
 
-        this.addPanelObject(panel);
+        this._panels.push(panel);
+        this.dom.appendChild(panel.dom);
 
         return panel;
     }
 
     public showPanel(id: number): void {
         for (let i = 0; i < this.dom.children.length; i++) {
-            const style = (this.dom.children[i] as HTMLElement).style;
-
-            if (style) {
-                style.display = i === id ? "block" : "none";
-            }
+            (this.dom.children[i] as HTMLElement).style.display = i === id ? "block" : "none";
         }
 
-        this.mode = id;
+        this._mode = id;
     }
 
     public begin(): void {
-        this.beginTime = (performance || Date).now();
+        this._beginTime = performance.now();
     }
 
     public end(): number {
-        const time = (performance || Date).now();
+        const time = performance.now();
 
-        this.frames++;
+        this._frames++;
 
-        for (const panel of this.panels) {
+        for (const panel of this._panels) {
             panel.update(time);
         }
 
@@ -127,52 +102,47 @@ export class Stats {
     }
 
     public update(): void {
-        this.beginTime = this.end();
+        this._beginTime = this.end();
     }
 
-    private addPanelObject(panel: Panel): void {
-        this.panels.push(panel);
-        this.dom.appendChild(panel.dom);
-    }
-
-    private initStyle(): void {
-        const darkMode = typeof matchMedia !== "undefined" ? matchMedia("(prefers-color-scheme: dark)") : undefined;
-
+    private _initStyle(): void {
         const listener = () => {
-            this.updateStyle();
+            this._updateStyle();
         };
 
-        if (darkMode?.addEventListener) {
-            darkMode?.addEventListener("change", listener);
-        } else if (darkMode?.addListener) {
-            darkMode?.addListener(listener);
+        if (this._darkModeQuery?.addEventListener) {
+            this._darkModeQuery.addEventListener("change", listener);
         }
 
-        this.updateStyle();
+        this._updateStyle();
     }
 
-    private updateStyle(): void {
-        const darkMode = typeof matchMedia !== "undefined" ? matchMedia("(prefers-color-scheme: dark)") : undefined;
-        const darkModeMatch = darkMode?.matches ?? false;
-
+    private _setupContainer(): void {
         this.dom.style.position = "fixed";
-        this.dom.style.top = "5px";
-        this.dom.style.left = "5px";
+        this.dom.style.top = "10px";
+        this.dom.style.left = "10px";
         this.dom.style.cursor = "pointer";
-        this.dom.style.opacity = "0.9";
         this.dom.style.zIndex = "10000";
-        this.dom.style.borderRadius = "5px";
+        this.dom.style.borderRadius = "12px";
 
-        if (darkModeMatch) {
-            this.background = "#000000";
-            this.dom.style.boxShadow = "-4px -4px 10px 0 rgb(255, 255, 255, 0.7)";
+        // GLASS EFFECT
+        this.dom.style.backdropFilter = "blur(14px)";
+        this.dom.style.border = "1px solid rgba(255,255,255,0.2)";
+        this.dom.style.boxShadow = "0 8px 32px rgba(0,0,0,0.25)";
+        this.dom.style.padding = "4px";
+    }
+
+    private _updateStyle(): void {
+        const dark = this._darkModeQuery?.matches ?? false;
+
+        if (dark) {
+            this._background = "rgba(0,0,0,0.25)";
         } else {
-            this.background = "#ffffff";
-            this.dom.style.boxShadow = "-4px -4px 10px 0 rgb(0, 0, 0, 0.7)";
+            this._background = "rgba(255,255,255,0.15)";
         }
 
-        for (const panel of this.panels) {
-            panel.background = this.background;
+        for (const panel of this._panels) {
+            panel.background = this._background;
         }
     }
 }

@@ -1,220 +1,149 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-
-<head>
+  <head>
     <title>stats.ts - tsParticles example</title>
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
     </style>
-</head>
+  </head>
 
-<body>
-    <div id="tsparticles"></div>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/@tsparticles/all@3.9.1/tsparticles.all.bundle.min.js"></script>
     <script src="../dist/stats.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tsparticles"></script>
     <script>
+      const stats = new Stats();
+      let maxParticles = 0;
 
-        var stats = new Stats();
-        var maxParticles = 0;
+      stats.addPanel("p", "#7777ff", 0, () => {
+        const container = tsParticles.item(0);
 
-        stats.addPanel('p', '#7777ff', 0, () => {
-            var container = tsParticles.domItem(0);
+        if (container) {
+          maxParticles = Math.max(container.particles.count, maxParticles);
 
-            if (container) {
-                maxParticles = Math.max(container.particles.count, maxParticles);
-
-                return {
-                    value: container.particles.count,
-                    maxValue: maxParticles
-                };
-            }
-        });
-
-        stats.showPanel(2);
-        document.body.appendChild(stats.dom);
-
-        var canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        document.body.appendChild(canvas);
-
-        var context = canvas.getContext('2d');
-        context.fillStyle = 'rgba(127,0,255,0.05)';
-
-        function animate() {
-
-            var time = performance.now() / 1000;
-
-            context.clearRect(0, 0, 512, 512);
-
-            stats.begin();
-            stats.end();
-
-            requestAnimationFrame(animate);
+          return {
+            value: container.particles.count,
+            maxValue: maxParticles,
+          };
         }
+      });
 
-        animate();
+      stats.showPanel(2);
 
-        tsParticles.load("tsparticles", {
-            "fpsLimit": 60,
-            "particles": {
-                "number": {
-                    "value": 80,
-                    "density": {
-                        "enable": true,
-                        "value_area": 800
-                    }
-                },
-                "color": {
-                    "value": "#ff0000",
-                    "animation": {
-                        "enable": true,
-                        "speed": 20,
-                        "sync": true
-                    }
-                },
-                "shape": {
-                    "type": "circle",
-                    "stroke": {
-                        "width": 0,
-                        "color": "#000000"
-                    },
-                    "polygon": {
-                        "nb_sides": 5
-                    },
-                    "image": {
-                        "src": "https://cdn.matteobruni.it/images/particles/github.svg",
-                        "width": 100,
-                        "height": 100
-                    }
-                },
-                "opacity": {
-                    "value": 0.5,
-                    "random": false,
-                    "anim": {
-                        "enable": false,
-                        "speed": 3,
-                        "opacity_min": 0.1,
-                        "sync": false
-                    }
-                },
-                "size": {
-                    "value": 3,
-                    "random": true,
-                    "anim": {
-                        "enable": false,
-                        "speed": 20,
-                        "size_min": 0.1,
-                        "sync": false
-                    }
-                },
-                "links": {
-                    "enable": true,
-                    "distance": 150,
-                    "color": "#ffffff",
-                    "opacity": 0.4,
-                    "width": 1
-                },
-                "move": {
-                    "enable": true,
-                    "speed": 6,
-                    "direction": "none",
-                    "random": false,
-                    "straight": false,
-                    "out_mode": "out",
-                    "attract": {
-                        "enable": false,
-                        "rotateX": 600,
-                        "rotateY": 1200
-                    }
-                }
+      document.body.appendChild(stats.dom);
+
+      const canvas = document.createElement("canvas");
+
+      canvas.width = 512;
+      canvas.height = 512;
+
+      document.body.appendChild(canvas);
+
+      const context = canvas.getContext("2d");
+
+      context.fillStyle = "rgba(127,0,255,0.05)";
+
+      function animate() {
+        const time = performance.now() / 1000;
+
+        stats.begin();
+        stats.end();
+
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+
+      (async (engine) => {
+        await loadAll(engine);
+
+        await engine.load({
+          options: {
+            background: {
+              color: "#000000",
             },
-            "interactivity": {
-                "detectsOn": "window",
-                "events": {
-                    "onhover": {
-                        "enable": true,
-                        "mode": "trail"
-                    },
-                    "onclick": {
-                        "enable": false,
-                        "mode": "push"
-                    },
-                    "resize": true
+            particles: {
+              number: {
+                value: 80,
+                density: {
+                  enable: true,
                 },
-                "modes": {
-                    "grab": {
-                        "distance": 400,
-                        "links": {
-                            "opacity": 1
-                        }
-                    },
-                    "bubble": {
-                        "distance": 400,
-                        "size": 40,
-                        "duration": 2,
-                        "opacity": 0.8
-                    },
-                    "repulse": {
-                        "distance": 200
-                    },
-                    "push": {
-                        "quantity": 4
-                    },
-                    "remove": {
-                        "quantity": 2
-                    },
-                    "trail": {
-                        "delay": 0.01,
-                        "quantity": 20,
-                        "particles": {
-                            "color": {
-                                "value": "#00ff00",
-                                "animation": {
-                                    "enable": true,
-                                    "speed": 720,
-                                    "sync": true
-                                }
-                            },
-                            "links": {
-                                "enable": false
-                            },
-                            life: {
-                                duration: {
-                                    value: 1
-                                },
-                                count: 1
-                            },
-                            "move": {
-                                "outMode": "destroy"
-                            },
-                            "size": {
-                                "random": true,
-                                "value": 3
-                            }
-                        }
-                    }
-                }
+              },
+              color: {
+                value: "#ff0000",
+                animation: {
+                  enable: true,
+                  speed: 20,
+                  sync: true,
+                },
+              },
+              shape: {
+                type: "circle",
+              },
+              opacity: {
+                value: 0.5,
+              },
+              size: {
+                value: { min: 1, max: 3 },
+              },
+              links: {
+                enable: true,
+                distance: 150,
+                color: "#ffffff",
+                opacity: 0.4,
+                width: 1,
+              },
+              move: {
+                enable: true,
+                speed: 6,
+              },
             },
-            "detectRetina": true,
-            "background": {
-                "color": "#000000",
-                "image": "",
-                "position": "50% 50%",
-                "repeat": "no-repeat",
-                "size": "cover"
+            interactivity: {
+              events: {
+                onHover: {
+                  enable: true,
+                  mode: "trail",
+                },
+              },
+              modes: {
+                trail: {
+                  delay: 0,
+                  quantity: 20,
+                  particles: {
+                    color: {
+                      value: "#00ff00",
+                      animation: {
+                        enable: true,
+                        speed: 720,
+                        sync: true,
+                      },
+                    },
+                    links: {
+                      enable: false,
+                    },
+                    life: {
+                      duration: {
+                        value: 1,
+                      },
+                      count: 1,
+                    },
+                    move: {
+                      outMode: "destroy",
+                    },
+                    size: {
+                      random: true,
+                      value: 3,
+                    },
+                  },
+                },
+              },
             },
-            backgroundMode: {
-                zIndex: -1,
-                enable: true
-            }
+          },
         });
-
+      })(tsParticles);
     </script>
-</body>
-
+  </body>
 </html>

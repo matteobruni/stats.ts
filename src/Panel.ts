@@ -1,8 +1,71 @@
-import type { IGraph, IText } from "./Interfaces";
-import type { IUpdateArgs } from "./Interfaces/IUpdateArgs";
+import type { IText } from "./Interfaces/IText.js";
+import type { IUpdateArgs } from "./Interfaces/IUpdateArgs.js";
 
 export class Panel {
     public readonly dom;
+
+    private readonly _canvas: HTMLCanvasElement;
+    private readonly _capacity: number;
+    private readonly _context: CanvasRenderingContext2D;
+    private readonly _data: number[];
+    private readonly _graphX: number;
+    private readonly _graphY: number;
+    private readonly _graphWidth: number;
+    private readonly _graphHeight: number;
+    private readonly _height: number;
+    private _index = 0;
+    private _lastTime = 0;
+    private _lastDisplayedValue = Number.NaN;
+    private _length = 0;
+    private _max = 0;
+    private _min = Infinity;
+    private readonly _pixelRatio: number;
+    private readonly _width: number;
+    private readonly _text: IText;
+
+    constructor(
+        private readonly name: string,
+        public foreground: string,
+        public background: string,
+        private readonly msRefresh: number,
+        private readonly refreshCallback: (time: number, delta: number) => IUpdateArgs | undefined,
+    ) {
+        this._pixelRatio = devicePixelRatio || 1;
+        this._width = 100 * this._pixelRatio;
+        this._height = 60 * this._pixelRatio;
+
+        this._text = {
+            position: {
+                x: 3 * this._pixelRatio,
+                y: 2 * this._pixelRatio,
+            },
+        };
+
+        this._graphX = 3 * this._pixelRatio;
+        this._graphY = 18 * this._pixelRatio;
+        this._graphWidth = 94 * this._pixelRatio;
+        this._graphHeight = 40 * this._pixelRatio;
+        this._capacity = this._graphWidth;
+        this._data = new Array(this._capacity) as number[];
+        this._canvas = document.createElement("canvas");
+        this._canvas.width = this._width;
+        this._canvas.height = this._height;
+        this._canvas.style.width = "100px";
+        this._canvas.style.height = "60px";
+        this._canvas.style.borderRadius = "8px";
+
+        const ctx = this._canvas.getContext("2d");
+
+        if (!ctx) {
+            throw new Error("Unable to get 2D context");
+        }
+
+        this._context = ctx;
+        this.dom = this._canvas;
+
+        this._setupContext();
+        this.init();
+    }
 
     public get min(): number {
         return this._min;
@@ -12,83 +75,13 @@ export class Panel {
         return this._max;
     }
 
-    private readonly data: number[];
-
-    private _max;
-    private _min;
-    private lastTime;
-
-    private readonly canvas: HTMLCanvasElement;
-    private readonly context;
-    private readonly pixelRatio;
-    private readonly width;
-    private readonly height;
-    private readonly text: IText;
-    private readonly graph: IGraph;
-
-    constructor(
-        private readonly name: string,
-        public foreground: string,
-        public background: string,
-        private readonly msRefresh: number,
-        private readonly refreshCallback: (time: number, delta: number) => IUpdateArgs | undefined
-    ) {
-        this.data = [];
-        this._min = Infinity;
-        this._max = 0;
-        this.lastTime = 0;
-        this.pixelRatio = Math.round(devicePixelRatio || 1);
-        this.width = 100 * this.pixelRatio;
-        this.height = 60 * this.pixelRatio;
-        this.text = {
-            position: {
-                x: 3 * this.pixelRatio,
-                y: 2 * this.pixelRatio,
-            },
-        };
-
-        this.graph = {
-            position: {
-                x: 3 * this.pixelRatio,
-                y: 18 * this.pixelRatio,
-            },
-            size: {
-                width: 94 * this.pixelRatio,
-                height: 40 * this.pixelRatio,
-            },
-        };
-
-        this.canvas = document.createElement("canvas");
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
-        this.canvas.style.width = "100px";
-        this.canvas.style.height = "60px";
-        this.canvas.style.borderRadius = "5px";
-        this.context = this.canvas.getContext("2d");
-
-        this.init();
-
-        this.dom = this.canvas;
-    }
-
     public init(): void {
-        if (!this.context) {
-            return;
-        }
-
-        const fontSize = 12 * this.pixelRatio;
-
-        // draws title
-        this.context.font = `400 ${fontSize}px "Avenir Next", Helvetica, "Helvetica Neue", Arial, sans-serif`;
-        this.context.textBaseline = "top";
-        this.context.fillStyle = this.background;
-        this.context.fillRect(0, 0, this.width, this.height);
-        this.context.fillStyle = this.foreground;
-        this.context.fillText(this.name, this.text.position.x, this.text.position.y);
+        this._context.clearRect(0, 0, this._width, this._height);
+        this._drawTitle(this.name);
     }
 
     public update(time: number): void {
-        const delta = time - this.lastTime;
+        const delta = time - this._lastTime;
 
         if (delta < this.msRefresh) {
             return;
@@ -100,55 +93,65 @@ export class Panel {
             return;
         }
 
-        this.lastTime = time;
+        this._lastTime = time;
 
         const { value, maxValue } = args;
 
         this._min = Math.min(this._min, value);
         this._max = Math.max(this._max, value);
 
-        this.data.push(value);
+        // ring buffer write
+        this._data[this._index] = value;
+        this._index = (this._index + 1) % this._capacity;
+        this._length = Math.min(this._length + 1, this._capacity);
 
-        const realMax = Math.max(this._max, maxValue);
+        const realMax = Math.max(this._max, maxValue),
+            invMax = realMax > 0 ? 1 / realMax : 1;
 
-        if (this.data.length > this.graph.size.width) {
-            this.data.splice(0, this.data.length - this.graph.size.width);
+        // ---- CLEAR ONLY GRAPH AREA ----
+        this._context.clearRect(this._graphX, this._graphY, this._graphWidth, this._graphHeight);
+
+        // ---- UPDATE TITLE ONLY IF VALUE CHANGED ----
+        const rounded = Math.round(value);
+
+        if (rounded !== this._lastDisplayedValue) {
+            this._lastDisplayedValue = rounded;
+            this._context.clearRect(0, 0, this._width, this._graphY - 2 * this._pixelRatio);
+
+            this._drawTitle(`${rounded.toFixed(2)} ${this.name} (${this._min.toFixed(2)}-${this._max.toFixed(2)})`);
         }
 
-        if (!this.context) {
-            return;
+        if (this._length === 0) return;
+
+        this._context.beginPath();
+        this._context.strokeStyle = this.foreground;
+
+        for (let i = 0; i < this._length; i++) {
+            const dataIndex = (this._index - 1 - i + this._capacity) % this._capacity,
+                v = this._data[dataIndex],
+                x = this._graphX + (this._length - 1 - i),
+                y = (1 - v * invMax) * this._graphHeight + this._graphY;
+
+            if (i === 0) {
+                this._context.moveTo(x, y);
+            } else {
+                this._context.lineTo(x, y);
+            }
         }
 
-        // draws background
-        this.context.fillStyle = this.background;
-        this.context.globalAlpha = 1;
-        this.context.fillRect(0, 0, this.width, this.height);
+        this._context.stroke();
+    }
 
-        // draws title
-        this.context.fillStyle = this.foreground;
-        this.context.fillText(
-            `${Math.round(value)} ${this.name} (${Math.round(this._min)}-${Math.round(this._max)})`,
-            this.text.position.x,
-            this.text.position.y
-        );
+    private _drawTitle(text: string): void {
+        this._context.fillStyle = this.foreground;
+        this._context.fillText(text, this._text.position.x, this._text.position.y);
+    }
 
-        // draws the graph line
-        this.context.beginPath();
-        this.context.moveTo(
-            this.data.length + this.graph.position.x,
-            (1 - this.data[this.data.length - 1] / realMax) * this.graph.size.height + this.graph.position.y
-        );
+    private _setupContext(): void {
+        const fontSize = 12 * this._pixelRatio;
 
-        for (let i = this.data.length - 1; i > 0; i--) {
-            const cpx = i - 1 / 2 + this.graph.position.x;
-            const cpy = (v: number) => (1 - v / realMax) * this.graph.size.height + this.graph.position.y;
-            const cp1y = cpy(this.data[i]);
-            const cp2y = cpy(this.data[i - 1]);
-
-            this.context.bezierCurveTo(cpx, cp1y, cpx, cp2y, i - 1 + this.graph.position.x, cp2y);
-        }
-
-        this.context.strokeStyle = this.foreground;
-        this.context.stroke();
+        this._context.font = `400 ${fontSize.toFixed(2)}px "Avenir Next", Helvetica, Arial, sans-serif`;
+        this._context.textBaseline = "top";
+        this._context.lineWidth = 1.2 * this._pixelRatio;
     }
 }

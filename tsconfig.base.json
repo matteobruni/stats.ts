@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "target": "es2021",
     "lib": [
-      "ES2015",
+      "ES2021",
       "DOM"
     ],
     "rootDir": "./src",
