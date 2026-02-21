@@ -1,5 +1,5 @@
+import { Panel, type PanelMode } from "./Panel.js";
 import type { IUpdateArgs } from "./Interfaces/IUpdateArgs.js";
-import { Panel } from "./Panel.js";
 
 interface MemoryPerformance {
     usedJSHeapSize: number;
@@ -12,59 +12,90 @@ declare global {
     }
 }
 
+export interface StatsOptions {
+    glass?: boolean;
+    defaultPanelMode?: PanelMode;
+}
+
 export class Stats {
     public dom: HTMLElement;
 
-    private _background = "rgba(255,255,255,0.15)";
-    private _beginTime = 0;
-    private readonly _darkModeQuery?: MediaQueryList;
+    private _panels: Panel[] = [];
     private _frames = 0;
+    private _beginTime = 0;
     private _mode = 0;
-    private readonly _panels: Panel[] = [];
+    private _background = "#ffffff";
+    private readonly _glass: boolean;
+    private readonly _defaultPanelMode: PanelMode;
 
-    constructor() {
+    constructor(options: StatsOptions = {}) {
+        const { glass = true, defaultPanelMode = "soft" } = options;
+
+        this._glass = glass;
+        this._defaultPanelMode = defaultPanelMode;
+
         this.dom = document.createElement("div");
-
-        this._darkModeQuery =
-            typeof matchMedia !== "undefined" ? matchMedia("(prefers-color-scheme: dark)") : undefined;
-
         this._setupContainer();
-        this._initStyle();
-
-        this.dom.addEventListener("click", (event) => {
-            event.preventDefault();
-            this.showPanel((this._mode + 1) % this.dom.children.length);
-        });
 
         this._beginTime = performance.now();
 
-        const fpsPanel = this.addPanel("FPS", "#4080f0", 100, (time, delta) => {
+        const fps = this.addPanel("FPS", "#4080f0", 100, (time, delta) => {
             const value = delta > 0 ? (this._frames * 1000) / delta : 0;
+
             this._frames = 0;
-            return { value, maxValue: 100 };
+
+            return {
+                value,
+                maxValue: 100,
+            };
         });
 
-        fpsPanel.thresholds = [
-            { value: 60, color: "#33A033" },
-            { value: 49, color: "#FFC700" },
-            { value: 29, color: "#FF0033" },
+        fps.thresholds = [
+            {
+                value: 60,
+                color: "#00c853",
+            },
+            {
+                value: 30,
+                color: "#ffd600",
+            },
+            {
+                value: 0,
+                color: "#ff1744",
+            },
         ];
 
-        this.addPanel("MS", "#33A033", 0, (time) => {
-            return { value: time - this._beginTime, maxValue: 200 };
+        const ms = this.addPanel("MS", "#33A033", 0, (time) => {
+            return {
+                value: time - this._beginTime,
+                maxValue: 200,
+            };
         });
 
-        if (performance.memory) {
-            const memory = performance.memory,
-                mb = 1048576;
+        ms.thresholds = [
+            { value: 16, color: "#00c853" },
+            { value: 33, color: "#ffd600" },
+            { value: 50, color: "#ff1744" },
+        ];
 
+        if (performance.memory) {
             this.addPanel("MB", "#ff0088", 100, () => {
+                if (!performance.memory) {
+                    return;
+                }
+
+                const mb = 1048576;
+
                 return {
-                    value: memory.usedJSHeapSize / mb,
-                    maxValue: memory.jsHeapSizeLimit / mb,
+                    value: performance.memory.usedJSHeapSize / mb,
+                    maxValue: performance.memory.jsHeapSizeLimit / mb,
                 };
             });
         }
+
+        this.dom.addEventListener("click", () => {
+            this.showPanel((this._mode + 1) % this._panels.length);
+        });
 
         this.showPanel(0);
     }
@@ -75,7 +106,7 @@ export class Stats {
         msRefresh: number,
         refreshCallback: (time: number, delta: number) => IUpdateArgs | undefined,
     ): Panel {
-        const panel = new Panel(name, foreground, this._background, msRefresh, refreshCallback);
+        const panel = new Panel(name, foreground, this._background, msRefresh, refreshCallback, this._defaultPanelMode);
 
         this._panels.push(panel);
         this.dom.appendChild(panel.dom);
@@ -83,9 +114,13 @@ export class Stats {
         return panel;
     }
 
+    public getPanel(name: string): Panel | undefined {
+        return this._panels.find((p) => p.name === name);
+    }
+
     public showPanel(id: number): void {
-        for (let i = 0; i < this.dom.children.length; i++) {
-            (this.dom.children[i] as HTMLElement).style.display = i === id ? "block" : "none";
+        for (let i = 0; i < this._panels.length; i++) {
+            this._panels[i].dom.style.display = i === id ? "block" : "none";
         }
 
         this._mode = id;
@@ -111,44 +146,19 @@ export class Stats {
         this._beginTime = this.end();
     }
 
-    private _initStyle(): void {
-        const listener = () => {
-            this._updateStyle();
-        };
-
-        if (this._darkModeQuery?.addEventListener) {
-            this._darkModeQuery.addEventListener("change", listener);
-        }
-
-        this._updateStyle();
-    }
-
     private _setupContainer(): void {
         this.dom.style.position = "fixed";
-        this.dom.style.top = "10px";
-        this.dom.style.left = "10px";
+        this.dom.style.top = "5px";
+        this.dom.style.left = "5px";
         this.dom.style.cursor = "pointer";
         this.dom.style.zIndex = "10000";
-        this.dom.style.borderRadius = "12px";
+        this.dom.style.borderRadius = "8px";
 
-        // GLASS EFFECT
-        this.dom.style.backdropFilter = "blur(14px)";
-        this.dom.style.border = "1px solid rgba(255,255,255,0.2)";
-        this.dom.style.boxShadow = "0 8px 32px rgba(0,0,0,0.25)";
-        this.dom.style.padding = "4px";
-    }
-
-    private _updateStyle(): void {
-        const dark = this._darkModeQuery?.matches ?? false;
-
-        if (dark) {
-            this._background = "rgba(0,0,0,0.25)";
+        if (this._glass) {
+            this.dom.style.backdropFilter = "blur(10px)";
+            this.dom.style.background = "rgba(255,255,255,0.1)";
         } else {
-            this._background = "rgba(255,255,255,0.15)";
-        }
-
-        for (const panel of this._panels) {
-            panel.background = this._background;
+            this.dom.style.background = this._background;
         }
     }
 }

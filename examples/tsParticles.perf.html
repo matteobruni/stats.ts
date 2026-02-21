@@ -15,7 +15,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@tsparticles/all@4.0.0-alpha.24/tsparticles.all.bundle.min.js"></script>
     <script src="../dist/stats.min.js"></script>
     <script>
-      const stats = new Stats();
+      const stats = new Stats({
+        glass: true,
+        defaultPanelMode: "hadcore",
+      });
+
       let maxParticles = 0;
 
       stats.addPanel("p", "#7777ff", 0, () => {
